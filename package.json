@@ -1,0 +1,9 @@
+{
+  "name": "wifi-vault",
+  "version": "1.0.0",
+  "description": "Temporary WiFi password saver with 7-day expiry",
+  "main": "index.html",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.8"
+  }
+}
