@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Vault (7-Day Expiry)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4">
+    <div class="max-w-md mx-auto space-y-6">
+        <header class="text-center mt-4">
+            <h1 class="text-2xl font-bold text-emerald-400">WiFi Vault</h1>
+            <p class="text-xs text-slate-400 mt-1">Automatically purges credentials after 7 days</p>
+        </header>
+
+        <!-- Form to Add WiFi -->
+        <form id="wifiForm" class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-4 shadow-lg">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Save New Network</h2>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Network Name (SSID)</label>
+                <input type="text" id="ssid" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-emerald-500" placeholder="e.g. Home_WiFi">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Password</label>
+                <input type="text" id="password" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-emerald-500" placeholder="e.g. secret123">
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 rounded-lg text-sm transition">Save Credential</button>
+        </form>
+
+        <!-- Saved Networks List -->
+        <div class="space-y-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Active Vault</h2>
+            <div id="wifiList" class="space-y-2">
+                <!-- Dynamic items go here -->
+                <p class="text-xs text-slate-500 text-center py-4">Loading vault...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/wifi';
+
+        async function fetchVault() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                const listEl = document.getElementById('wifiList');
+                
+                if (data.length === 0) {
+                    listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No active Wi-Fi credentials found.</p>`;
+                    return;
+                }
+
+                listEl.innerHTML = data.map(item => {
+                    // Calculate remaining days out of 7
+                    const created = new Date(item.created_at);
+                    const expiry = new Date(created.getTime() + 7 * 24 * 60 * 60 * 1000);
+                    const timeLeft = expiry - new Date();
+                    const daysLeft = Math.max(0, Math.ceil(timeLeft / (1000 * 60 * 60 * 24)));
+
+                    return `
+                        <div class="bg-slate-800 p-3.5 rounded-xl border border-slate-700 flex justify-between items-center">
+                            <div>
+                                <h3 class="font-bold text-sm text-white">${item.ssid}</h3>
+                                <p class="text-xs text-emerald-400 font-mono mt-0.5">Password: ${item.password}</p>
+                                <span class="inline-block text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded mt-2">Expires in ${daysLeft} day(s)</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('wifiForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const ssid = document.getElementById('ssid').value;
+            const password = document.getElementById('password').value;
+
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ssid, password })
+            });
+
+            if (res.ok) {
+                document.getElementById('wifiForm').reset();
+                fetchVault();
+            } else {
+                alert('Failed to save credential.');
+            }
+        });
+
+        fetchVault();
+    </script>
+</body>
+      </html>
+      
